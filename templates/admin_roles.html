@@ -1,0 +1,535 @@
+
+{% extends "base.html" %}
+{% block title %}{{ 'role_management'|t }} - Админ панель{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary">
+                    <i class="fas fa-user-tag me-2"></i>
+                    {{ 'role_management'|t }}
+                </h2>
+                <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>{{ 'back'|t }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Role Form -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card bg-dark border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Создать новую роль
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_create_role') }}" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="role_name" class="form-label">Название роли</label>
+                            <input type="text" class="form-control bg-secondary text-light border-0" 
+                                   id="role_name" name="role_name" required 
+                                   placeholder="Например: VIP Player">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="role_color" class="form-label">Цвет роли</label>
+                            <div class="input-group">
+                                <input type="color" class="form-control form-control-color bg-secondary border-0" 
+                                       id="role_color" name="role_color" value="#ffd700">
+                                <input type="text" class="form-control bg-secondary text-light border-0" 
+                                       id="role_color_hex" value="#ffd700" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Эмодзи роли</label>
+
+                            <!-- Tabs for emoji selection -->
+                            <ul class="nav nav-pills mb-3" id="emoji-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="emoji-upload-tab" data-bs-toggle="pill" 
+                                            data-bs-target="#emoji-upload" type="button" role="tab">
+                                        <i class="fas fa-upload me-1"></i>Загрузить файл
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="emoji-icon-tab" data-bs-toggle="pill" 
+                                            data-bs-target="#emoji-icon" type="button" role="tab">
+                                        <i class="fas fa-icons me-1"></i>Font Awesome
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="emoji-text-tab" data-bs-toggle="pill" 
+                                            data-bs-target="#emoji-text" type="button" role="tab">
+                                        <i class="fas fa-smile me-1"></i>Текстовый эмодзи
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- Tab content -->
+                            <div class="tab-content" id="emoji-tab-content">
+                                <!-- File upload tab -->
+                                <div class="tab-pane fade show active" id="emoji-upload" role="tabpanel">
+                                    <input type="file" class="form-control bg-secondary text-light border-0" 
+                                           id="emoji_file" name="emoji_file" accept=".png,.svg,.webp,.gif" 
+                                           onchange="previewEmoji(this)">
+                                    <img id="emojiPreview" src="#" alt="Emoji preview" class="emoji" 
+                                         style="display:none; margin-top: 10px;">
+                                    <small class="form-text text-muted">
+                                        Загрузите PNG, SVG, WEBP или GIF файл (макс. 200KB для статичных, 512KB для GIF)
+                                    </small>
+                                </div>
+
+                                <!-- Font Awesome tab -->
+                                <div class="tab-pane fade" id="emoji-icon" role="tabpanel">
+                                    <input type="text" class="form-control bg-secondary text-light border-0" 
+                                           id="role_emoji_class" name="role_emoji_class" placeholder="fas fa-crown">
+                                    <small class="form-text text-muted">
+                                        Введите класс Font Awesome (например: fas fa-crown, fas fa-star)
+                                    </small>
+                                </div>
+
+                                <!-- Text emoji tab -->
+                                <div class="tab-pane fade" id="emoji-text" role="tabpanel">
+                                    <input type="text" class="form-control bg-secondary text-light border-0" 
+                                           id="role_emoji" name="role_emoji" placeholder="👑" maxlength="10">
+                                    <small class="form-text text-muted">
+                                        Введите обычный эмодзи
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="role_visible" 
+                                       name="role_visible" checked>
+                                <label class="form-check-label text-light" for="role_visible">
+                                    Отображать роль в профиле
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="role_gradient" 
+                                       name="role_gradient">
+                                <label class="form-check-label text-light" for="role_gradient">
+                                    Использовать градиент
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="gradient_settings" style="display: none;">
+                            <label for="role_gradient_end" class="form-label">Конечный цвет градиента</label>
+                            <input type="color" class="form-control form-control-color bg-secondary border-0" 
+                                   id="role_gradient_end" name="role_gradient_end" value="#ffaa00">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Создать роль
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assign Role Form -->
+        <div class="col-lg-6">
+            <div class="card bg-dark border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Присвоить роль игроку
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_assign_role') }}">
+                        <div class="mb-3">
+                            <label for="player_nickname" class="form-label">Ник игрока</label>
+                            <select class="form-select bg-secondary text-light border-0" 
+                                    id="player_nickname" name="player_nickname" required>
+                                <option value="">Выберите игрока</option>
+                                {% for player in players %}
+                                <option value="{{ player.nickname }}">
+                                    {{ player.nickname }} ({{ player.level }} lvl)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="role_id" class="form-label">Роль</label>
+                            <select class="form-select bg-secondary text-light border-0" 
+                                    id="role_id" name="role_id" required>
+                                <option value="">Выберите роль</option>
+                                {% for role in custom_roles %}
+                                <option value="{{ role.id }}" data-color="{{ role.color }}">
+                                    {% if role.emoji_url %}
+                                        🖼️
+                                    {% elif role.emoji_class %}
+                                        🔧
+                                    {% elif role.emoji %}
+                                        {{ role.emoji }}
+                                    {% endif %}
+                                    {{ role.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>Присвоить роль
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Roles -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Все кастомные роли
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Цвет</th>
+                                    <th>Эмодзи</th>
+                                    <th>Игроки с ролью</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in custom_roles %}
+                                <tr>
+                                    <td>{{ role.id }}</td>
+                                    <td>
+                                        <span style="color: {{ role.color }}; {% if role.has_gradient %}background: {{ role.gradient_css }};{% endif %}">
+                                            {{ role.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ role.color }};">
+                                            {{ role.color }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if role.emoji_url %}
+                                            <img src="{{ role.emoji_url }}" class="emoji role-emoji" 
+                                                 alt="custom emoji" loading="lazy">
+                                            {% if role.emoji_is_animated %}
+                                                <small class="text-success">(анимация)</small>
+                                            {% endif %}
+                                        {% elif role.emoji_class %}
+                                            <i class="{{ role.emoji_class }} role-emoji"></i>
+                                        {% elif role.emoji %}
+                                            <span class="role-emoji">{{ role.emoji }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Нет</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ role.players_count or 0 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-warning btn-sm" 
+                                                    onclick="editRole({{ role.id }}, '{{ role.name }}', '{{ role.color }}', '{{ role.emoji or '' }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                    onclick="deleteRole({{ role.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Кастомные роли не созданы
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Roles Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Игроки с кастомными ролями
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Игрок</th>
+                                    <th>{{ 'level'|t }}</th>
+                                    <th>Роль</th>
+                                    <th>Дата присвоения</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player_role in players_with_roles %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('player_profile', player_id=player_role.player.id) }}" 
+                                           class="text-decoration-none">
+                                            {{ player_role.player.nickname }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ player_role.player.level }}</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: {{ player_role.role.color }};">
+                                            {% if player_role.role.emoji_url %}
+                                                <img src="{{ player_role.role.emoji_url }}" class="role-emoji" alt="custom emoji">
+                                            {% elif player_role.role.emoji_class %}
+                                                <i class="{{ player_role.role.emoji_class }}"></i>
+                                            {% elif player_role.role.emoji %}
+                                                {{ player_role.role.emoji }}
+                                            {% endif %}
+                                            {{ player_role.role.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ player_role.assigned_at.strftime('%d.%m.%Y %H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                onclick="removePlayerRole({{ player_role.player.id }})">
+                                            <i class="fas fa-times me-1"></i>Снять
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Нет игроков с кастомными ролями
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Preview emoji function
+function previewEmoji(input) {
+    const preview = document.getElementById('emojiPreview');
+    const file = input.files[0];
+
+    if (file) {
+        // Check file size
+        const maxSize = file.name.toLowerCase().endsWith('.gif') ? 512 * 1024 : 200 * 1024;
+        const maxSizeText = file.name.toLowerCase().endsWith('.gif') ? '512KB' : '200KB';
+
+        if (file.size > maxSize) {
+            alert(`Файл слишком большой! Максимум ${maxSizeText}`);
+            input.value = '';
+            preview.style.display = 'none';
+            return;
+        }
+
+        // Check file type
+        const allowedTypes = ['image/png', 'image/svg+xml', 'image/webp', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Недопустимый тип файла! Разрешены: PNG, SVG, WEBP, GIF');
+            input.value = '';
+            preview.style.display = 'none';
+            return;
+        }
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'inline-block';
+            preview.className = 'emoji emoji-preview';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+// DOM Content Loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Gradient toggle
+    const gradientCheckbox = document.getElementById('role_gradient');
+    const gradientSettings = document.getElementById('gradient_settings');
+
+    if (gradientCheckbox) {
+        gradientCheckbox.addEventListener('change', function() {
+            gradientSettings.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    // Color picker sync
+    const colorPicker = document.getElementById('role_color');
+    const colorHex = document.getElementById('role_color_hex');
+
+    if (colorPicker && colorHex) {
+        colorPicker.addEventListener('change', function() {
+            colorHex.value = this.value;
+        });
+        colorHex.value = colorPicker.value;
+    }
+
+    // Clear emoji preview when switching tabs
+    document.querySelectorAll('#emoji-tabs button').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const preview = document.getElementById('emojiPreview');
+            if (preview) {
+                preview.style.display = 'none';
+            }
+
+            // Clear the file input if switching away from the upload tab
+            if (this.id !== 'emoji-upload-tab') {
+                const emojiFileInput = document.getElementById('emoji_file');
+                if (emojiFileInput) {
+                    emojiFileInput.value = '';
+                }
+            }
+        });
+    });
+});
+
+// Delete role function
+function deleteRole(roleId) {
+    if (confirm('Вы уверены, что хотите удалить эту роль? Это действие нельзя отменить.')) {
+        fetch(`/admin/delete_role/${roleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при удалении роли: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при удалении роли');
+        });
+    }
+}
+
+// Remove player role function
+function removePlayerRole(playerId) {
+    if (confirm('Снять роль у этого игрока?')) {
+        fetch(`/admin/remove_player_role/${playerId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при снятии роли: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при снятии роли');
+        });
+    }
+}
+
+// Edit role function (placeholder - can be expanded)
+function editRole(roleId, roleName, roleColor, roleEmoji) {
+    // This could open a modal for editing
+    console.log('Edit role:', roleId, roleName, roleColor, roleEmoji);
+    alert('Функция редактирования будет добавлена позже');
+}
+</script>
+
+<style>
+.emoji {
+    width: 28px;
+    height: 28px;
+    vertical-align: middle;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.emoji-preview {
+    border: 2px solid var(--bs-primary);
+}
+
+.role-emoji {
+    width: 24px;
+    height: 24px;
+}
+
+.form-control-color {
+    width: 50px;
+    height: 38px;
+}
+
+.nav-pills .nav-link {
+    background-color: transparent;
+    border: 1px solid #6c757d;
+    color: #adb5bd;
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.tab-content {
+    min-height: 120px;
+}
+</style>
+{% endblock %}
